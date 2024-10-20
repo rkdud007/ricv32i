@@ -97,9 +97,14 @@ impl CPU {
         self.reg.data[instruction.rd as usize] = result;
     }
 
+    fn sign_extend(value: u32, bits: u8) -> i32 {
+        let shift = 32 - bits;
+        ((value << shift) as i32) >> shift
+    }
+
     fn execute_itype(&mut self, instruction: RV5Itype) {
         let rs1_val = self.reg.data[instruction.rs1 as usize];
-        let imm_val = instruction.imm as i32; // Sign-extend the immediate
+        let imm_val = Self::sign_extend(instruction.imm, 12); // Correctly sign-extend the immediate
 
         let result = match instruction.funct3 {
             0b000 => rs1_val.wrapping_add(imm_val as u32), // ADDI (add immediate)
@@ -149,5 +154,25 @@ mod tests {
         cpu.execute_ins();
         assert_eq!(cpu.reg.data[7], 35 & 10); // x7 = x5 & x6 = 35 & 10 = 2
         assert_eq!(cpu.clk, 3);
+    }
+
+    #[test]
+    fn test_cpu_sign_extension_with_negative_imm() {
+        let mut cpu = CPU::new();
+
+        // Instruction: addi x5, x6, -5
+        let imm = (-5i16 as u16) as u32;
+        let instruction = (imm << 20) | (6 << 15) | (5 << 7) | 0b0010011;
+        // https://luplab.gitlab.io/rvcodecjs/#q=0xffb30293&abi=false&isa=AUTO
+        println!("Instruction: {:#x}", instruction);
+
+        cpu.load_instructions(&[instruction], 0);
+        cpu.reg.data[6] = 10; // x6 = 10
+
+        cpu.execute_ins();
+
+        // Expected result: x5 = x6 + (-5) = 10 + (-5) = 5
+        assert_eq!(cpu.reg.data[5], 5);
+        assert_eq!(cpu.clk, 1);
     }
 }
