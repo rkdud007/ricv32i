@@ -1,5 +1,5 @@
 [package]
-name = "tiny-cpu"
+name = "ricv32i"
 version = "0.1.0"
 edition = "2021"
 

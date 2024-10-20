@@ -1,4 +1,6 @@
-# ricv32I
+# ricv32i
+
+learning purpose tiny riscv32i emulator written in Rust. Ideally i'd like to run simple game on it
 
 ## compile
 
