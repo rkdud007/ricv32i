@@ -1,4 +1,4 @@
-const RAM_SIZE: usize = 1024;
+const RAM_SIZE: usize = 1024 * 5;
 
 pub enum MemoryAccessSize {
     Byte,

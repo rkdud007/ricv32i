@@ -5,6 +5,8 @@ pub enum RV5Instruction {
     I(RV5Itype),
     S(RV5Stype),
     SB(RV5SBtype),
+    ECALL,
+    NOP,
 }
 
 // | funct7  | rs2   | rs1   | funct3 | rd    | opcode |
@@ -57,6 +59,12 @@ pub struct RV5SBtype {
 
 impl RV5Instruction {
     pub fn new(instruction: u32) -> Self {
+        if instruction == 0x00000073 {
+            return Self::ECALL;
+        } else if instruction == 0x00000000 {
+            println!("Encountered NOP or uninitialized memory.");
+            return Self::NOP;
+        }
         let opcode = instruction & 0x7F; // bits 6-0
         match opcode {
             0b0110011 => {

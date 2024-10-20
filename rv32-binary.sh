@@ -22,5 +22,7 @@ riscv64-unknown-elf-ld -m elf32lriscv -o "${FILE_DIR}/${FILE_NAME}" "${FILE_DIR}
 # Generate the binary file in the same directory as the .s file
 riscv64-unknown-elf-objcopy -O binary "${FILE_DIR}/${FILE_NAME}" "${FILE_DIR}/${FILE_NAME}.bin"
 
+riscv64-unknown-elf-ld -m elf32lriscv -o "${FILE_DIR}/${FILE_NAME}.elf" "${FILE_DIR}/${FILE_NAME}.o"
+
 # Display success message and binary output path
 echo "Binary generated: ${FILE_DIR}/${FILE_NAME}.bin"

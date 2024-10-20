@@ -46,6 +46,7 @@ impl CPU {
 
     pub fn load_instructions(&mut self, binary_data: &[u8]) {
         for (i, chunk) in binary_data.chunks(4).enumerate() {
+            println!("Writing instruction at index: {:?}", chunk);
             self.ram.write_word(
                 i * 4,
                 u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]),
@@ -71,8 +72,42 @@ impl CPU {
             RV5Instruction::I(rv5_i_type) => self.execute_itype(rv5_i_type),
             RV5Instruction::S(rv5_s_type) => self.execute_stype(rv5_s_type),
             RV5Instruction::SB(rv5_sb_type) => self.execute_sbtype(rv5_sb_type),
+            RV5Instruction::ECALL => self.handle_ecall(),
+            RV5Instruction::NOP => {
+                println!("Encountered NOP or uninitialized memory.");
+                std::process::exit(0);
+            }
         }
         self.clk += 1;
+    }
+
+    fn handle_ecall(&mut self) {
+        match self.reg.gen_reg[17] {
+            1 => {
+                // a0 (x10)
+                println!("{}", self.reg.gen_reg[10]);
+            }
+            4 => {
+                // a0 (x10)
+                let addr = self.reg.gen_reg[10] as usize;
+                let mut s = String::new();
+                let mut i = addr;
+                loop {
+                    let byte = self.ram.data[i];
+                    if byte == 0 {
+                        break;
+                    }
+                    s.push(byte as char);
+                    i += 1;
+                }
+                print!("{}", s);
+            }
+            10 => {
+                println!("Program exiting.");
+                std::process::exit(0);
+            }
+            _ => panic!("Unknown syscall number: {}", self.reg.gen_reg[17]),
+        }
     }
 
     /// Decode the instruction
@@ -144,8 +179,8 @@ mod tests {
     #[test]
     fn test_cpu_fetch_and_execute_instruction() {
         let binary_data = load_binary("examples/simple/program.bin");
+        println!("Binary data size: {:?}", binary_data.len());
         let mut cpu = CPU::new();
-
         cpu.load_instructions(&binary_data);
         //  li
         cpu.execute_ins();
@@ -175,4 +210,25 @@ mod tests {
         cpu.execute_ins();
         assert_eq!(cpu.reg.gen_reg[5], 10 - 5); // x5 = 5
     }
+
+    // #[test]
+    // fn test_ecall_handling() {
+    //     let binary_data = load_binary("examples/hello_world/program.bin");
+    //     println!("Binary data size: {:?}", binary_data.len());
+    //     let mut cpu = CPU::new();
+    //     cpu.load_instructions(&binary_data);
+
+    //     cpu.execute_ins();
+    //     cpu.execute_ins();
+    //     cpu.execute_ins();
+    //     cpu.execute_ins();
+    //     cpu.execute_ins();
+    //     cpu.execute_ins();
+    //     cpu.execute_ins();
+    //     cpu.execute_ins();
+    //     cpu.execute_ins();
+    //     cpu.execute_ins();
+
+    //     assert_eq!(cpu.clk, 10);
+    // }
 }
