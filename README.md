@@ -1,4 +1,4 @@
-# ricv5
+# ricv32I
 
 ## compile
 
