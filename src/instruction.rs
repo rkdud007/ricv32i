@@ -5,7 +5,10 @@ pub enum RV5Instruction {
     I(RV5Itype),
     S(RV5Stype),
     SB(RV5SBtype),
+    J(RV5Jtype),
+    U(RVUtype),
     ECALL,
+    EBREAK,
     NOP,
 }
 
@@ -57,15 +60,35 @@ pub struct RV5SBtype {
     pub opcode: u32,
 }
 
+// |imm[20]|  imm[10:1]  |imm[11]| imm[19:12] | rd    | opcode |
+// |:-----:|:-----------:|:-----:|:----------:|:-----:|:------:|
+// |1 bits |   10 bits   | 1 bits| 8 bits     | 5 bits| 7 bits |
+pub struct RV5Jtype {
+    pub imm: u32,
+    pub rd: u32,
+    pub opcode: u32,
+}
+
+// | imm[31:12]     | rd    | opcode |
+// |:--------------:|:-----:|:------:|
+// |   20 bits      | 5 bits| 7 bits |
+pub struct RVUtype {
+    pub imm20: u32,
+    pub rd: u32,
+    pub opcode: u32,
+}
+
 impl RV5Instruction {
     pub fn new(instruction: u32) -> Self {
         if instruction == 0x00000073 {
+            println!("ecall");
             return Self::ECALL;
         } else if instruction == 0x00000000 {
             println!("Encountered NOP or uninitialized memory.");
             return Self::NOP;
         }
         let opcode = instruction & 0x7F; // bits 6-0
+                                         // println!("ins: 0b{:07b} ", opcode);
         match opcode {
             0b0110011 => {
                 let funct7 = (instruction >> 25) & 0x7F; // bits 31-25
@@ -73,7 +96,6 @@ impl RV5Instruction {
                 let rs1 = (instruction >> 15) & 0x1F; // bits 19-15
                 let funct3 = (instruction >> 12) & 0x7; // bits 14-12
                 let rd = (instruction >> 7) & 0x1F; // bits 11-7
-                let opcode = instruction & 0x7F; // bits 6-0
                 RV5Instruction::R(RV5Rtype {
                     funct7,
                     rs2,
@@ -88,7 +110,6 @@ impl RV5Instruction {
                 let rs1 = (instruction >> 15) & 0x1F; // bits 19-15
                 let funct3 = (instruction >> 12) & 0x7; // bits 14-12
                 let rd = (instruction >> 7) & 0x1F; // bits 11-7
-                let opcode = instruction & 0x7F; // bits 6-0
                 RV5Instruction::I(RV5Itype {
                     imm,
                     rs1,
@@ -104,7 +125,6 @@ impl RV5Instruction {
                 let funct3 = (instruction >> 12) & 0x7; // bits 14-12
                 let imm_4_0 = (instruction >> 7) & 0x1F; // bits 11-7
                 let imm = (imm_11_5 << 5) | imm_4_0; // Combine imm[11:5] and imm[4:0]
-                let opcode = instruction & 0x7F; // bits 6-0
                 RV5Instruction::S(RV5Stype {
                     imm,
                     rs2,
@@ -133,6 +153,24 @@ impl RV5Instruction {
                     opcode,
                 })
             }
+            0b0010111 | 0b0110111 => {
+                let imm20 = (instruction >> 12) & 0x09; // bit 31-12
+                let rd = (instruction >> 7) & 0x1F; // bits 11-7
+                let opcode = instruction & 0x7F; // bits 6-0
+                RV5Instruction::U(RVUtype { imm20, rd, opcode })
+            }
+            0b1101111 => {
+                let rd = (instruction >> 7) & 0x1F;
+                let imm_19_12 = (instruction >> 12) & 0xFF; // bits 19:12 (8 bits)
+                let imm_11 = ((instruction >> 20) & 0x1) << 11;
+                let imm_10_1 = ((instruction >> 21) & 0x3FF) << 1; // bits 30:21 (10 bits)
+                let imm_20 = ((instruction >> 31) & 0x1) << 20;
+
+                let imm = imm_20 | (imm_19_12 << 12) | imm_11 | imm_10_1;
+
+                RV5Instruction::J(RV5Jtype { imm, rd, opcode })
+            }
+            0b1110011 => RV5Instruction::EBREAK,
             _ => panic!("Unknown instruction"),
         }
     }

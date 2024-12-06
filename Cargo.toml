@@ -3,4 +3,14 @@ name = "ricv32i"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "rv32i_lib"
+path = "src/lib.rs"
+
+[[bin]]
+name = "rv32i_run"
+path = "src/bin/bin.rs"
+
 [dependencies]
+glob = "0.3"
+elf = "0.7.4"
